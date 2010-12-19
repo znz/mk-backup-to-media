@@ -1,0 +1,49 @@
+#!/bin/bash
+
+. ssft.sh
+SSFT_FRONTEND=${SSFT_FRONTEND:-$(ssft_choose_frontend)}
+export SSFT_FRONTEND
+cd "$(dirname "$0")"
+TIT="$(basename "$0")"
+
+TEXTDOMAIN=mk-backup-to-media
+export TEXTDOMAIN
+if [ -d locale ]; then
+  TEXTDOMAINDIR=$(pwd)/locale
+  export TEXTDOMAINDIR
+fi
+
+# hooks before exit
+# hook should be simple command. escaped string may cause troubles.
+trap0_functions=("")
+run_trap0_functions () {
+    for x in "${trap0_functions[@]}"; do
+	$x
+    done
+}
+
+push_trap0_functions () {
+    trap0_functions[${#trap0_functions[@]}]="$@"
+}
+
+pop_trap0_functions () {
+    trap0_functions=("${trap0_functions[@]:0:$[${#trap0_functions[@]}-1]}")
+}
+
+unshift_trap0_functions () {
+    trap0_functions=("$*" "${trap0_functions:+${trap0_functions[@]}}")
+}
+
+shift_trap0_functions () {
+    trap0_functions=("${trap0_functions[@]:1:$[${#trap0_functions[@]}]}")
+}
+
+trap run_trap0_functions 0
+
+prepare_workdir () {
+    if [ "${WORKDIR:+set}" = set ]; then
+        return
+    fi
+    WORKDIR=$(mktemp -d /tmp/mk-backup-to-media.XXXXXXXXXX)
+    push_trap0_functions "rm -rf $WORKDIR"
+}

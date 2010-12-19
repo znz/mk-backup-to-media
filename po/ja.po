@@ -1,0 +1,88 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: mk-backup-to-media 0.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2010-12-20 09:08+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: mk-backup-to-media:52
+msgid "The user CANCELLED the operation"
+msgstr "キャンセルされました。"
+
+#: mk-backup-to-media:73
+#, sh-format
+msgid "Mounted media not found. Please attach media to backup."
+msgstr ""
+"マウントされたメディアがみつかりません。バックアップ先のメディアを接続してく"
+"ださい。"
+
+#: mk-backup-to-media:79
+#, sh-format
+msgid "Backup to ${target}, OK?"
+msgstr "${target} にバックアップします。よろしいですか?"
+
+#: mk-backup-to-media:88
+#, sh-format
+msgid "Select a directory where backup to."
+msgstr "バックアップ先を選択してください。"
+
+#: mk-backup-to-media:101
+#, sh-format
+msgid "DBNAMES not set. Please setup ${default_sh}."
+msgstr "DBNAMES が設定されていません。 ${default_sh} で設定してください。"
+
+#: mk-backup-to-media:108
+#, sh-format
+msgid "Failed to dump ${DB}."
+msgstr "${DB} のダンプに失敗しました。"
+
+#: mk-backup-to-media:117
+#, sh-format
+msgid "PASSPHRASE not set. Please setup ${default_sh}."
+msgstr "PASSPHRASE が設定されていません。 ${default_sh} で設定してください。"
+
+#: mk-backup-to-media:127 mk-backup-to-media:138
+#, sh-format
+msgid "Failed to encrypt dump files."
+msgstr "暗号化したダンプファイルのコピーに失敗しました。"
+
+#: mk-backup-to-media:172
+#, sh-format
+msgid "Dumping databases..."
+msgstr "データベースをダンプ中..."
+
+#: mk-backup-to-media:177
+#, sh-format
+msgid "Encrypting dump files..."
+msgstr "ダンプファイルを暗号化中..."
+
+#: mk-backup-to-media:182
+#, sh-format
+msgid "Copying encrypted dump files..."
+msgstr "暗号化したダンプファイルをコピー中..."
+
+#: mk-backup-to-media:187
+#, sh-format
+msgid "Verifying copied files..."
+msgstr "コピーしたファイルを検証中..."
+
+#: mk-backup-to-media:192
+#, sh-format
+msgid "Removing old backup files..."
+msgstr "古いバックアップファイルを削除中..."
+
+#: mk-backup-to-media:200
+#, sh-format
+msgid "Backup finished."
+msgstr "バックアップが完了しました。"

@@ -1,0 +1,5 @@
+mk-backup-to-media (0.0.0) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Kazuhiro NISHIYAMA <zn@mbf.nifty.com>  Mon, 20 Dec 2010 08:08:08 +0900

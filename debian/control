@@ -1,0 +1,15 @@
+Source: mk-backup-to-media
+Section: misc
+Priority: extra
+Maintainer: Kazuhiro NISHIYAMA <zn@mbf.nifty.com>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.3
+Homepage: http://github.com/znz/mk-backup-to-media
+
+Package: mk-backup-to-media
+Architecture: all
+Depends: ssft, ${misc:Depends}
+Recommends: ssh-askpass-gnome | ssh-askpass
+Description: Backup PostgreSQL databases to mounted media
+ mk-backup-to-media makes backup of PostgreSQL databases to mounted /media/*
+ using gnupg encrypt with a symmetric cipher.

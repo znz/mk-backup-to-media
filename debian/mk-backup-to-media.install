@@ -1,0 +1,2 @@
+common-functions usr/share/mk-backup-to-media
+mk-backup-to-media usr/bin

@@ -1,0 +1,203 @@
+#!/bin/bash
+set -e
+
+BACKUP_TO=
+DBNAMES=()
+PASSPHRASE=
+MAX_FILES=5
+export SUDO_ASKPASS=/usr/bin/ssh-askpass
+SUDO_OPTIONS=(-A -u postgres)
+PG_DUMP_COMMAND=(/usr/bin/pg_dump -O)
+umask 077
+
+cd "$(dirname "$0")"
+if [ -f ./common-functions ]; then
+    . ./common-functions
+else
+    . /usr/share/mk-backup-to-media/common-functions
+fi
+
+# Include mk-backup-to-media defaults if available
+if [ -f /etc/xdg/mk-backup-to-media/default.sh ] ; then
+    . /etc/xdg/mk-backup-to-media/default.sh
+fi
+default_sh="${XDG_CONFIG_HOME:-$HOME/.config}/mk-backup-to-media/default.sh"
+if [ -f "${default_sh}" ]; then
+    . "${default_sh}"
+else
+    mkdir -p -m700 "${default_sh%/*}"
+    cat >"${default_sh}" <<EOF
+# databases of postgresql
+DBNAMES=(${DBNAMES[@]})
+# using gnupg encrypt with a symmetric cipher
+PASSPHRASE=
+# number of backup files
+MAX_FILES=$MAX_FILES
+
+# sudo
+export SUDO_ASKPASS=$SUDO_ASKPASS
+SUDO_OPTIONS=(${SUDO_OPTIONS[@]})
+
+# pg_dump
+PG_DUMP_COMMAND=(${PG_DUMP_COMMAND[@]})
+
+# set if use fixed path instead of /media/*
+BACKUP_TO=$BACKUP_TO
+EOF
+    chmod 600 "${XDG_CONFIG_HOME:-$HOME/.config}/mk-backup-to-media/default.sh"
+fi
+
+CANCELLED () {
+    ret=$1
+    MSG="`gettext "The user CANCELLED the operation"`"
+    ssft_display_message "$TIT" "$MSG"
+    exit $ret
+}
+
+set_backup_to () {
+    if [ -n "$BACKUP_TO" ]; then
+	return
+    fi
+
+    local target targets=()
+    for d in /media/*; do
+	if mountpoint "$d" >/dev/null 2>&1; then
+	    if [ -w "$d" ]; then
+		targets[${#targets[@]}]="$d"
+	    fi
+	fi
+    done
+
+    case "${#targets[@]}" in
+	0)
+	    MSG="$(eval_gettext 'Mounted media not found. Please attach media to backup.')"
+	    ssft_display_error "$TIT" "$MSG"
+	    exit 1
+	    ;;
+	1)
+	    target="${targets[0]}"
+	    MSG="$(eval_gettext 'Backup to ${target}, OK?')"
+	    if ssft_yesno "$TIT" "$MSG"; then
+		BACKUP_TO=${target}
+	    else
+		CANCELLED $?
+	    fi
+	    ;;
+	*)
+	    SSFT_DEFAULT="${targets[0]}"
+	    MSG="$(eval_gettext 'Select a directory where backup to.')"
+	    if ssft_select_single "$TIT" "$MSG" "${targets[@]}"; then
+		BACKUP_TO=$SSFT_RESULT
+	    else
+		CANCELLED $?
+	    fi
+	    ;;
+    esac
+}
+
+dump_database () {
+    local DB DUMP
+    if [ -z "${DBNAMES[*]}" ]; then
+	MSG="$(eval_gettext 'DBNAMES not set. Please setup ${default_sh}.')"
+	ssft_display_error "$TIT" "$MSG"
+	exit 1
+    fi
+    for DB in "${DBNAMES[@]}"; do
+	DUMP="$WORKDIR/${DB}.$(date '+%Y%m%d%H%M%S').dump"
+	if ! sudo "${SUDO_OPTIONS[@]}" "${PG_DUMP_COMMAND[@]}" "$DB" > "$DUMP"; then
+	    MSG="$(eval_gettext 'Failed to dump ${DB}.')"
+	    ssft_display_error "$TIT" "$MSG"
+	    exit 1
+	fi
+    done
+}
+
+encrypt_dump () {
+    if [ -z "$PASSPHRASE" ]; then
+	MSG="$(eval_gettext 'PASSPHRASE not set. Please setup ${default_sh}.')"
+	ssft_display_error "$TIT" "$MSG"
+	exit 1
+    fi
+
+    local f
+    for f in "$WORKDIR"/*.dump; do
+	if gpg --batch --passphrase-fd 0 -c "$f" <<<"$PASSPHRASE" >/dev/null; then
+	    rm -f "$f"
+	else
+	    MSG="$(eval_gettext 'Failed to encrypt dump files.')"
+	    ssft_display_error "$TIT" "$MSG"
+	    exit 1
+	fi
+    done
+}
+
+copy_dump_gpg () {
+    local f
+    for f in "$WORKDIR"/*.dump.gpg; do
+	if ! cp -p "$f" "$BACKUP_TO/$(basename "$f")"; then
+	    MSG="$(eval_gettext 'Failed to encrypt dump files.')"
+	    ssft_display_error "$TIT" "$MSG"
+	    exit 1
+	fi
+    done
+    sync
+}
+
+verify_copy () {
+    if (cd "$WORKDIR" && md5sum *.dump.gpg) | (cd "$BACKUP_TO" && md5sum -c) 2>"$WORKDIR/md5sum.err"; then
+	return
+    else
+	ssft_show_file "$TIT" "$WORKDIR/md5sum.err"
+	exit 1
+    fi
+}
+
+check_quantity () {
+    local DB f
+    for DB in "${DBNAMES[@]}"; do
+	for f in $(/bin/ls -t1 "$BACKUP_TO/$DB".*.dump.gpg | sed -ne $(($MAX_FILES + 1))',$p'); do
+	    rm -f "$f"
+	done
+    done
+}
+
+# main
+set_backup_to
+export BACKUP_TO
+prepare_workdir
+export WORKDIR
+
+{
+    echo 0
+    MSG="$(eval_gettext 'Dumping databases...')"
+    echo "$MSG"
+    dump_database
+
+    echo 20
+    MSG="$(eval_gettext 'Encrypting dump files...')"
+    echo "$MSG"
+    encrypt_dump
+
+    echo 40
+    MSG="$(eval_gettext 'Copying encrypted dump files...')"
+    echo "$MSG"
+    copy_dump_gpg
+
+    echo 60
+    MSG="$(eval_gettext 'Verifying copied files...')"
+    echo "$MSG"
+    verify_copy
+
+    echo 80
+    MSG="$(eval_gettext 'Removing old backup files...')"
+    echo "$MSG"
+    check_quantity
+
+    echo 100
+} | ssft_progress_bar "$TIT"
+
+if [ 0 -eq ${PIPESTATUS[0]} ]; then
+    MSG="$(eval_gettext 'Backup finished.')"
+    ssft_display_message "$TIT" "$MSG"
+    exit $ret
+fi
